@@ -1,5 +1,7 @@
 # claude-bot
 
+[中文文档](README.zh.md)
+
 Go-based bot powered by [Claude Code](https://claude.ai/code) as the AI backend. Currently supports Feishu (Lark).
 
 ## Requirements
