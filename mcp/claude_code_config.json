@@ -1,0 +1,12 @@
+﻿{
+  "mcpServers": {
+    "search": {
+      "command": "python",
+      "args": [
+        "D:\\myselfClow\\mcp\\search_server_v3.py"
+      ],
+      "description": "Web search with hot news, news search, and general web search",
+      "env": {}
+    }
+  }
+}

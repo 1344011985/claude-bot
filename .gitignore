@@ -1,0 +1,5 @@
+dist/
+*.db
+config.yaml
+qq-claude-bot
+qq-claude-bot.exe
