@@ -145,21 +145,21 @@ func defaultConfig() *Config {
 	cfg.Claude.DefaultModel = "haiku"
 	cfg.Claude.Models = map[string]ModelConfig{
 		"haiku": {
-			Name:            "claude-haiku-4-5-20251001",
+			Name:            "claude-haiku-4.5",
 			InputPriceMTok:  1.0,
 			OutputPriceMTok: 5.0,
 			CacheWriteMTok:  1.25,
 			CacheReadMTok:   0.1,
 		},
 		"sonnet": {
-			Name:            "claude-sonnet-4-6",
+			Name:            "claude-sonnet-4.6",
 			InputPriceMTok:  15.0,
 			OutputPriceMTok: 75.0,
 			CacheWriteMTok:  18.75,
 			CacheReadMTok:   1.5,
 		},
 		"opus": {
-			Name:            "claude-opus-4-6",
+			Name:            "claude-opus-4.6",
 			InputPriceMTok:  30.0,
 			OutputPriceMTok: 150.0,
 			CacheWriteMTok:  37.5,
