@@ -1,5 +1,32 @@
+# Build output
 dist/
+
+# Runtime data & secrets
+data/
+logs/
 *.db
 config.yaml
-qq-claude-bot
-qq-claude-bot.exe
+*.local.json
+
+# MCP server (local dev tool)
+mcp/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kiro IDE specs
+.kiro/
+
+# Test failure snapshots
+**/testdata/rapid/
+
+# Temp / logs
+tmp/
+*.log
+*.txt

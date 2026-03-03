@@ -1,4 +1,4 @@
-package memory
+﻿package memory
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ func newMemStore(t interface {
 	return s
 }
 
-// Feature: qq-claude-bot, Property 1: Session round-trip
+// Feature: feishu-claude-bot, Property 1: Session round-trip
 func TestProperty1_SessionRoundTrip(t *testing.T) {
 	rapid.Check(t, func(rt *rapid.T) {
 		s, err := NewSQLiteStore(":memory:")
@@ -48,7 +48,7 @@ func TestProperty1_SessionRoundTrip(t *testing.T) {
 	})
 }
 
-// Feature: qq-claude-bot, Property 2: 记忆注入完整性
+// Feature: feishu-claude-bot, Property 2: 记忆注入完整性
 func TestProperty2_MemoryIntegrity(t *testing.T) {
 	rapid.Check(t, func(rt *rapid.T) {
 		s, err := NewSQLiteStore(":memory:")
@@ -88,7 +88,7 @@ func TestProperty2_MemoryIntegrity(t *testing.T) {
 	})
 }
 
-// Feature: qq-claude-bot, Property 3: 记忆删除彻底性
+// Feature: feishu-claude-bot, Property 3: 记忆删除彻底性
 func TestProperty3_MemoryDeletion(t *testing.T) {
 	rapid.Check(t, func(rt *rapid.T) {
 		s, err := NewSQLiteStore(":memory:")
@@ -118,7 +118,7 @@ func TestProperty3_MemoryDeletion(t *testing.T) {
 	})
 }
 
-// Feature: qq-claude-bot, Property 4: 历史记录追加不变性
+// Feature: feishu-claude-bot, Property 4: 历史记录追加不变性
 func TestProperty4_HistoryAppendInvariant(t *testing.T) {
 	rapid.Check(t, func(rt *rapid.T) {
 		s, err := NewSQLiteStore(":memory:")

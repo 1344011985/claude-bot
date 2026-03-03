@@ -1,10 +1,10 @@
-package claude
+﻿package claude
 
 import (
 	"regexp"
 	"strings"
 
-	"qq-claude-bot/internal/config"
+	"feishu-claude-bot/internal/config"
 )
 
 // TaskComplexity represents the complexity level of a user's task.

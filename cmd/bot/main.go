@@ -8,14 +8,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"qq-claude-bot/internal/bot"
-	"qq-claude-bot/internal/claude"
-	"qq-claude-bot/internal/command"
-	"qq-claude-bot/internal/config"
-	"qq-claude-bot/internal/feishu"
-	"qq-claude-bot/internal/imageutil"
-	"qq-claude-bot/internal/memory"
-	"qq-claude-bot/pkg/logger"
+	"feishu-claude-bot/internal/claude"
+	"feishu-claude-bot/internal/command"
+	"feishu-claude-bot/internal/config"
+	"feishu-claude-bot/internal/feishu"
+	"feishu-claude-bot/internal/imageutil"
+	"feishu-claude-bot/internal/memory"
+	"feishu-claude-bot/pkg/logger"
 )
 
 // Version variables injected via ldflags at build time.
@@ -25,28 +24,55 @@ var (
 )
 
 func main() {
-	channel := flag.String("channel", "qq", "messaging channel: qq or feishu")
+	channelFlag := flag.String("channel", "", "override channel from config (e.g. feishu)")
+	configFlag := flag.String("config", "", "override config file path")
 	flag.Parse()
 
 	// Inject version into command package
 	command.GitCommit = GitCommit
 	command.BuildDate = BuildDate
 
-	// Load and validate config
-	cfg, err := config.Load("config.yaml")
+	// Resolve config path
+	cfgPath := *configFlag
+	if cfgPath == "" {
+		var err error
+		cfgPath, err = config.ConfigPath()
+		if err != nil {
+			slog.Error("failed to resolve config path", "err", err)
+			os.Exit(1)
+		}
+	}
+
+	// Log platform and config path before logger is fully initialised
+	slog.Info("starting feishu-claude-bot",
+		"platform", config.Platform(),
+		"config_path", cfgPath,
+	)
+
+	cfg, err := config.LoadFrom(cfgPath)
 	if err != nil {
 		slog.Error("failed to load config", "err", err)
 		os.Exit(1)
 	}
-	if err := cfg.Validate(*channel); err != nil {
+	if *channelFlag != "" {
+		cfg.Channel = *channelFlag
+	}
+	if err := cfg.Validate(); err != nil {
 		slog.Error("invalid config", "err", err)
 		os.Exit(1)
 	}
 
-	log := logger.New(cfg.LogLevel)
+	log := logger.New(cfg.LogLevel, cfg.ConfigDir)
+
+	log.Info("config loaded",
+		"platform", config.Platform(),
+		"config_path", cfgPath,
+		"config_dir", cfg.ConfigDir,
+		"channel", cfg.Channel,
+	)
 
 	// Ensure data directory exists
-	if err := os.MkdirAll("data", 0755); err != nil {
+	if err := os.MkdirAll(cfg.ConfigDir+"/data", 0755); err != nil {
 		log.Error("failed to create data directory", "err", err)
 		os.Exit(1)
 	}
@@ -63,13 +89,9 @@ func main() {
 		}
 	}()
 
-	// Initialise Claude runner
 	runner := claude.New(cfg.Claude.BinPath, cfg.Claude.TimeoutSeconds)
-
-	// Initialise model selector
 	selector := claude.NewModelSelector(cfg)
 
-	// Initialise image downloader (nil if cache_dir not configured)
 	downloader, err := imageutil.New(cfg.Images.CacheDir, cfg.Images.MaxSizeMB)
 	if err != nil {
 		log.Error("failed to init image downloader", "err", err)
@@ -79,40 +101,31 @@ func main() {
 		log.Info("image support enabled", "cache_dir", cfg.Images.CacheDir)
 	}
 
-	// Build system prompt based on channel
-	systemPrompt := cfg.SystemPrompt
-	if *channel == "feishu" {
-		systemPrompt = buildFeishuSystemPrompt(cfg)
-	}
-
-	// Initialise command router
+	systemPrompt := buildSystemPrompt(cfg)
 	router := command.NewRouter(store, runner, downloader, selector, systemPrompt, log)
 
-	// Context for graceful shutdown
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	log.Info("bot starting", "channel", *channel, "commit", GitCommit, "built", BuildDate)
+	log.Info("bot starting", "channel", cfg.Channel, "commit", GitCommit, "built", BuildDate)
 
-	switch *channel {
+	switch cfg.Channel {
 	case "feishu":
 		if err := feishu.Start(ctx, cfg, router, store, log); err != nil {
 			log.Error("feishu bot exited with error", "err", err)
 			os.Exit(1)
 		}
 	default:
-		// QQ channel (original behavior)
-		handler := bot.New(router, nil, cfg, log)
-		if err := bot.Start(ctx, cfg, handler, log); err != nil {
-			log.Error("qq bot exited with error", "err", err)
-			os.Exit(1)
-		}
+		log.Error("unsupported channel", "channel", cfg.Channel)
+		os.Exit(1)
 	}
 }
 
-// buildFeishuSystemPrompt returns a cleaner system prompt for Feishu,
-// removing QQ-specific restrictions (path/URL/filename interception, no markdown, etc.)
-func buildFeishuSystemPrompt(cfg *config.Config) string {
+// buildSystemPrompt returns the system prompt to inject into every Claude call.
+func buildSystemPrompt(cfg *config.Config) string {
+	if cfg.SystemPrompt != "" {
+		return cfg.SystemPrompt
+	}
 	return `你是一个运行在飞书机器人上的 AI 助手，由 Claude 驱动。
 
 ## 行为准则
@@ -127,11 +140,6 @@ func buildFeishuSystemPrompt(cfg *config.Config) string {
 - 禁止访问工作目录以外的系统文件
 - 禁止安装软件、修改系统配置、创建计划任务
 - 如果用户要求执行危险操作，礼貌拒绝并说明原因
-
-## 能力范围
-- 回答问题、写代码、分析文本、数学计算
-- 查看和修改项目文件（需用户明确授权）
-- 运行安全的测试命令
 
 ## 可用命令
 - /ask <问题> — 向 Claude 提问（续接上下文）

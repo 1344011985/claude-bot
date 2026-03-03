@@ -122,7 +122,7 @@ func (s *streamingSession) start(receiveID, receiveIDType string) error {
 			"elements": []map[string]interface{}{
 				{
 					"tag":        "markdown",
-					"content":    "⏳ 正在思考中...",
+					"content":    "",
 					"element_id": "content",
 				},
 			},

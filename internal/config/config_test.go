@@ -6,16 +6,16 @@ import (
 	"pgregory.net/rapid"
 )
 
-// Feature: qq-claude-bot, Property 6: 超时边界强制
+// Feature: feishu-claude-bot, Property 6: 超时边界强制
 func TestProperty6_TimeoutBoundEnforced(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		maxTimeout := rapid.IntRange(1, 7200).Draw(t, "max_timeout")
-		// timeout is strictly greater than max
 		timeout := rapid.IntRange(maxTimeout+1, maxTimeout+10000).Draw(t, "timeout")
 
 		cfg := defaultConfig()
-		cfg.QQ.AppID = "test-app-id"
-		cfg.QQ.AppSecret = "test-app-secret"
+		cfg.Channel = "feishu"
+		cfg.Feishu.AppID = "test-app-id"
+		cfg.Feishu.AppSecret = "test-app-secret"
 		cfg.Claude.TimeoutSeconds = timeout
 		cfg.Claude.MaxTimeoutSeconds = maxTimeout
 
@@ -27,15 +27,15 @@ func TestProperty6_TimeoutBoundEnforced(t *testing.T) {
 	})
 }
 
-// Validate() should succeed when timeout <= max_timeout
 func TestValidate_TimeoutWithinBounds(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		maxTimeout := rapid.IntRange(1, 7200).Draw(t, "max_timeout")
 		timeout := rapid.IntRange(1, maxTimeout).Draw(t, "timeout")
 
 		cfg := defaultConfig()
-		cfg.QQ.AppID = "test-app-id"
-		cfg.QQ.AppSecret = "test-app-secret"
+		cfg.Channel = "feishu"
+		cfg.Feishu.AppID = "test-app-id"
+		cfg.Feishu.AppSecret = "test-app-secret"
 		cfg.Claude.TimeoutSeconds = timeout
 		cfg.Claude.MaxTimeoutSeconds = maxTimeout
 
@@ -45,19 +45,19 @@ func TestValidate_TimeoutWithinBounds(t *testing.T) {
 	})
 }
 
-// Validate() should fail when AppID is missing
 func TestValidate_MissingAppID(t *testing.T) {
 	cfg := defaultConfig()
-	cfg.QQ.AppSecret = "secret"
+	cfg.Channel = "feishu"
+	cfg.Feishu.AppSecret = "secret"
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("expected error for missing AppID")
 	}
 }
 
-// Validate() should fail when AppSecret is missing
 func TestValidate_MissingAppSecret(t *testing.T) {
 	cfg := defaultConfig()
-	cfg.QQ.AppID = "id"
+	cfg.Channel = "feishu"
+	cfg.Feishu.AppID = "id"
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("expected error for missing AppSecret")
 	}

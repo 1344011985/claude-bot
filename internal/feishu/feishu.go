@@ -17,9 +17,9 @@ import (
 	larkim "github.com/larksuite/oapi-sdk-go/v3/service/im/v1"
 	larkws "github.com/larksuite/oapi-sdk-go/v3/ws"
 
-	"qq-claude-bot/internal/command"
-	"qq-claude-bot/internal/config"
-	"qq-claude-bot/internal/memory"
+	"feishu-claude-bot/internal/command"
+	"feishu-claude-bot/internal/config"
+	"feishu-claude-bot/internal/memory"
 )
 
 // chatHistoryEntry is a single message in a group chat history buffer.
@@ -53,7 +53,7 @@ type nameCacheEntry struct {
 }
 
 const (
-	maxGroupHistorySize = 20
+	maxGroupHistorySize = 5
 	nameCacheTTL        = 10 * time.Minute
 )
 
@@ -550,7 +550,7 @@ func (b *Bot) sendThinkingCard(ctx context.Context, msgID string) string {
 		return ""
 	}
 
-	cardJSON := buildCardJSON("⏳ **正在思考中，请稍候...**")
+	cardJSON := buildCardJSON("")
 
 	req := larkim.NewReplyMessageReqBuilder().
 		MessageId(msgID).
@@ -751,9 +751,3 @@ func (b *Bot) removeReaction(ctx context.Context, msgID, emojiType string) {
 	}
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

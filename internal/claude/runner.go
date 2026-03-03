@@ -105,6 +105,18 @@ func (r *Runner) RunWithModel(ctx context.Context, prompt, sessionID, systemProm
 		if runCtx.Err() == context.DeadlineExceeded {
 			return nil, fmt.Errorf("claude request timed out after %s", r.timeout)
 		}
+		// Even on non-zero exit, try to parse stdout — claude may have written
+		// a valid JSON result before exiting with an error code.
+		if len(out) > 0 {
+			var result claudeOutput
+			if jsonErr := json.Unmarshal(out, &result); jsonErr == nil && result.Result != "" {
+				return &RunResult{
+					SessionID: result.SessionID,
+					Text:      result.Result,
+					Usage:     result.Usage,
+				}, nil
+			}
+		}
 		// Capture stderr for non-zero exit
 		var exitErr *exec.ExitError
 		stderr := ""
