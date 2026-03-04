@@ -65,7 +65,7 @@ go build -ldflags "-X main.GitCommit=$(git rev-parse --short HEAD) -X main.Build
 |------|------|
 | Windows | `C:\Users\<用户名>\.claude-bot\claude-bot.json` |
 | macOS | `/Users/<用户名>/.claude-bot/claude-bot.json` |
-| Linux | `/root/.claude-bot/claude-bot.json` |
+| Linux | `~/.claude-bot/claude-bot.json` |
 
 首次运行前需要手动创建目录和配置文件。
 
