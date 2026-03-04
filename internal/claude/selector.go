@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"feishu-claude-bot/internal/config"
+	"claude-bot/internal/config"
 )
 
 // TaskComplexity represents the complexity level of a user's task.

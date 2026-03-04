@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"feishu-claude-bot/internal/memory"
+	"claude-bot/internal/memory"
 )
 
 // --- /remember handler ---

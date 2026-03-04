@@ -8,9 +8,9 @@
 
 ```bash
 # 1. 下载二进制
-wget https://github.com/1344011985/claude-bot/releases/download/v0.1.0/qq-claude-bot-linux-amd64
-chmod +x qq-claude-bot-linux-amd64
-sudo mv qq-claude-bot-linux-amd64 /usr/local/bin/claude-bot
+wget https://github.com/1344011985/claude-bot/releases/download/v0.1.0/claude-bot-linux-amd64
+chmod +x claude-bot-linux-amd64
+sudo mv claude-bot-linux-amd64 /usr/local/bin/claude-bot
 
 # 2. 创建配置目录和配置文件
 mkdir -p ~/.claude-bot

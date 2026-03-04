@@ -1,11 +1,10 @@
 ﻿# CLAUDE.md - myselfClow Project Context
 
 ## Project Overview
-Go-based multi-channel bot (QQ + Feishu) powered by Claude Code as the AI backend.
-Key directories: `internal/` (bot/feishu/claude/command/config/memory), `cmd/bot/`, `dist/`, `data/`
-Build: `go build -o dist/qq-claude-bot.exe ./cmd/bot/`
-Run feishu: `.\dist\qq-claude-bot.exe -channel feishu`
-Run QQ: `.\dist\qq-claude-bot.exe`
+Go-based Feishu bot powered by Claude Code as the AI backend.
+Key directories: `internal/` (feishu/claude/command/config/memory), `cmd/bot/`, `dist/`, `data/`
+Build: `go build -o dist/claude-bot ./cmd/bot/`
+Run: `./dist/claude-bot -channel feishu`
 
 ## Work Style
 
@@ -35,8 +34,7 @@ Run QQ: `.\dist\qq-claude-bot.exe`
 ## Key Technical Context
 
 ### Architecture
-- **QQ channel**: `internal/bot/` — uses tencent-connect/botgo SDK, WebSocket
-- **Feishu channel**: `internal/feishu/` — uses larksuite/oapi-sdk-go, WebSocket  
+- **Feishu channel**: `internal/feishu/` — uses larksuite/oapi-sdk-go, WebSocket
 - **Claude runner**: `internal/claude/runner.go` — spawns claude CLI subprocess, captures JSON output
 - **Command router**: `internal/command/router.go` — dispatches /commands and free-text to handlers
 - **Memory store**: `internal/memory/store.go` — SQLite-backed sessions, memories, history, dedup

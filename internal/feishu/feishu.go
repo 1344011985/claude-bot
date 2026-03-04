@@ -17,9 +17,9 @@ import (
 	larkim "github.com/larksuite/oapi-sdk-go/v3/service/im/v1"
 	larkws "github.com/larksuite/oapi-sdk-go/v3/ws"
 
-	"feishu-claude-bot/internal/command"
-	"feishu-claude-bot/internal/config"
-	"feishu-claude-bot/internal/memory"
+	"claude-bot/internal/command"
+	"claude-bot/internal/config"
+	"claude-bot/internal/memory"
 )
 
 // chatHistoryEntry is a single message in a group chat history buffer.

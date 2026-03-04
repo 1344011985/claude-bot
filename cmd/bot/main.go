@@ -8,13 +8,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"feishu-claude-bot/internal/claude"
-	"feishu-claude-bot/internal/command"
-	"feishu-claude-bot/internal/config"
-	"feishu-claude-bot/internal/feishu"
-	"feishu-claude-bot/internal/imageutil"
-	"feishu-claude-bot/internal/memory"
-	"feishu-claude-bot/pkg/logger"
+	"claude-bot/internal/claude"
+	"claude-bot/internal/command"
+	"claude-bot/internal/config"
+	"claude-bot/internal/feishu"
+	"claude-bot/internal/imageutil"
+	"claude-bot/internal/memory"
+	"claude-bot/pkg/logger"
 )
 
 // Version variables injected via ldflags at build time.
@@ -44,7 +44,7 @@ func main() {
 	}
 
 	// Log platform and config path before logger is fully initialised
-	slog.Info("starting feishu-claude-bot",
+	slog.Info("starting claude-bot",
 		"platform", config.Platform(),
 		"config_path", cfgPath,
 	)

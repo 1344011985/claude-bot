@@ -1,9 +1,9 @@
-# build.ps1 — cross-compile qq-claude-bot for all target platforms (Windows)
+# build.ps1 — cross-compile claude-bot for all target platforms (Windows)
 $ErrorActionPreference = "Stop"
 
-$Binary   = "qq-claude-bot"
+$Binary   = "claude-bot"
 $DistDir  = "dist"
-$Pkg      = "qq-claude-bot/internal/command"
+$Pkg      = "claude-bot/internal/command"
 
 $Commit = (git rev-parse --short HEAD 2>$null) -replace "`n",""
 if (-not $Commit) { $Commit = "unknown" }

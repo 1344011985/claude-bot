@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"feishu-claude-bot/internal/newsearch"
+	"claude-bot/internal/newsearch"
 )
 
 // --- /news handler ---

@@ -12,7 +12,7 @@ import (
 	"pgregory.net/rapid"
 )
 
-// Feature: feishu-claude-bot, Property 5: Runner 命令构建正确性
+// Feature: claude-bot, Property 5: Runner 命令构建正确性
 func TestProperty5_BuildCmdCorrectness(t *testing.T) {
 	rapid.Check(t, func(rt *rapid.T) {
 		r := New("claude", 300)

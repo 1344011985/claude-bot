@@ -11,7 +11,7 @@ import (
 // knownCommands lists all registered slash commands.
 var knownCommands = []string{"/new", "/remember", "/forget", "/history", "/help", "/version"}
 
-// Feature: feishu-claude-bot, Property 5: 指令路由正确性
+// Feature: claude-bot, Property 5: 指令路由正确性
 // For any message not starting with '/', it should be handled by the ask (fallback) handler.
 // For known slash commands, they should not return "未知指令".
 func TestProperty5_RouterCorrectness(t *testing.T) {

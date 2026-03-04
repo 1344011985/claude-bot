@@ -1,4 +1,4 @@
-module feishu-claude-bot
+module claude-bot
 
 go 1.24.1
 

@@ -1,6 +1,6 @@
-BINARY   := qq-claude-bot
+BINARY   := claude-bot
 DIST_DIR := dist
-PKG      := qq-claude-bot/internal/command
+PKG      := claude-bot/internal/command
 COMMIT   := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 DATE     := $(shell date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "unknown")
 LDFLAGS  := -X $(PKG).GitCommit=$(COMMIT) -X $(PKG).BuildDate=$(DATE)

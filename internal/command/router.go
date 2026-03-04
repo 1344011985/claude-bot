@@ -6,10 +6,10 @@ import (
 	"regexp"
 	"strings"
 
-	"feishu-claude-bot/internal/claude"
-	"feishu-claude-bot/internal/imageutil"
-	"feishu-claude-bot/internal/memory"
-	"feishu-claude-bot/internal/newsearch"
+	"claude-bot/internal/claude"
+	"claude-bot/internal/imageutil"
+	"claude-bot/internal/memory"
+	"claude-bot/internal/newsearch"
 )
 
 // modelSwitchPatterns matches natural language model switching requests.

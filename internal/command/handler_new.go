@@ -3,7 +3,7 @@
 import (
 	"context"
 
-	"feishu-claude-bot/internal/memory"
+	"claude-bot/internal/memory"
 )
 
 // --- /new handler ---

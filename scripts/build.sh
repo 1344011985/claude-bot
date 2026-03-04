@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# build.sh — cross-compile qq-claude-bot for all target platforms
+# build.sh — cross-compile claude-bot for all target platforms
 set -euo pipefail
 
-BINARY="qq-claude-bot"
+BINARY="claude-bot"
 DIST_DIR="dist"
-PKG="qq-claude-bot/internal/command"
+PKG="claude-bot/internal/command"
 COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS="-X ${PKG}.GitCommit=${COMMIT} -X ${PKG}.BuildDate=${DATE}"

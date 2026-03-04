@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"feishu-claude-bot/internal/memory"
+	"claude-bot/internal/memory"
 )
 
 // --- /history handler ---

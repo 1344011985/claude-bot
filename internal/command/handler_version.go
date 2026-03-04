@@ -10,5 +10,5 @@ import (
 type versionHandler struct{}
 
 func (h *versionHandler) Handle(ctx context.Context, msg *IncomingMessage) (string, error) {
-	return fmt.Sprintf("feishu-claude-bot commit=%s built=%s", GitCommit, BuildDate), nil
+	return fmt.Sprintf("claude-bot commit=%s built=%s", GitCommit, BuildDate), nil
 }

@@ -6,7 +6,7 @@ import (
 	"pgregory.net/rapid"
 )
 
-// Feature: feishu-claude-bot, Property 6: 超时边界强制
+// Feature: claude-bot, Property 6: 超时边界强制
 func TestProperty6_TimeoutBoundEnforced(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		maxTimeout := rapid.IntRange(1, 7200).Draw(t, "max_timeout")

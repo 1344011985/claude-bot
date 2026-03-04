@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"feishu-claude-bot/internal/claude"
-	"feishu-claude-bot/internal/imageutil"
-	"feishu-claude-bot/internal/memory"
+	"claude-bot/internal/claude"
+	"claude-bot/internal/imageutil"
+	"claude-bot/internal/memory"
 )
 
 // --- /ask handler ---
