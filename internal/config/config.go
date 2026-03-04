@@ -52,7 +52,7 @@ type Config struct {
 //
 //	Windows : C:\Users\<user>\.claude-bot\claude-bot.json
 //	macOS   : /Users/<user>/.claude-bot/claude-bot.json
-//	Linux   : /root/.claude-bot/claude-bot.json  (or ~/.claude-bot/)
+//	Linux   : ~/.claude-bot/claude-bot.json
 func ConfigPath() (string, error) {
 	dir, err := configDir()
 	if err != nil {
