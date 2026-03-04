@@ -2,9 +2,40 @@
 
 基于 Go 语言开发的机器人，使用 [Claude Code](https://claude.ai/code) 作为 AI 后端，当前支持飞书（Lark）平台。
 
+## 快速部署（Linux）
+
+无需编译，直接下载预构建二进制：
+
+```bash
+# 1. 下载二进制
+wget https://github.com/1344011985/claude-bot/releases/download/v0.1.0/qq-claude-bot-linux-amd64
+chmod +x qq-claude-bot-linux-amd64
+sudo mv qq-claude-bot-linux-amd64 /usr/local/bin/claude-bot
+
+# 2. 创建配置目录和配置文件
+mkdir -p ~/.claude-bot
+cat > ~/.claude-bot/claude-bot.json << 'EOF'
+{
+  "channel": "feishu",
+  "feishu": {
+    "app_id": "cli_xxxxxxxxxxxxxxxx",
+    "app_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  }
+}
+EOF
+
+# 3. 编辑配置，填入你的飞书 App ID 和 App Secret
+nano ~/.claude-bot/claude-bot.json
+
+# 4. 启动
+claude-bot -channel feishu
+```
+
+> 前提：服务器上已安装并登录 [Claude Code CLI](https://claude.ai/code)（`claude` 命令可用）
+
 ## 环境要求
 
-- Go 1.21+
+- Go 1.21+（源码构建时需要）
 - 已安装并登录的 [Claude Code CLI](https://claude.ai/code)
 
 ## 构建
