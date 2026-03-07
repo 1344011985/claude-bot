@@ -75,6 +75,9 @@ type Store interface {
 	CheckAndMarkSeen(messageID, accountID string) (alreadySeen bool, err error)
 	PruneOldDedup(olderThanMinutes int) error
 
+	// DB returns the underlying *sql.DB so other stores (e.g. skills) can share the connection.
+	DB() *sql.DB
+
 	Close() error
 }
 
@@ -270,6 +273,11 @@ func (s *sqliteStore) PruneOldDedup(olderThanMinutes int) error {
 		olderThanMinutes,
 	)
 	return err
+}
+
+// DB returns the underlying *sql.DB for sharing with other stores.
+func (s *sqliteStore) DB() *sql.DB {
+	return s.db
 }
 
 func (s *sqliteStore) Close() error {

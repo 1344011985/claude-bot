@@ -8,12 +8,14 @@ import (
 	"os/signal"
 	"syscall"
 
+
 	"claude-bot/internal/claude"
 	"claude-bot/internal/command"
 	"claude-bot/internal/config"
 	"claude-bot/internal/feishu"
 	"claude-bot/internal/imageutil"
 	"claude-bot/internal/memory"
+	"claude-bot/internal/skills"
 	"claude-bot/pkg/logger"
 )
 
@@ -101,8 +103,17 @@ func main() {
 		log.Info("image support enabled", "cache_dir", cfg.Images.CacheDir)
 	}
 
+	// Skills Hub (optional — failure is non-fatal, hub stays nil)
+	var skillsHub *skills.Hub
+	if skillStore, err := skills.NewSQLiteSkillStore(store.DB()); err != nil {
+		log.Warn("failed to init skills store, skills disabled", "err", err)
+	} else {
+		skillsHub = skills.NewHub(skillStore)
+		log.Info("skills hub enabled")
+	}
+
 	systemPrompt := buildSystemPrompt(cfg)
-	router := command.NewRouter(store, runner, downloader, selector, systemPrompt, log)
+	router := command.NewRouter(store, runner, downloader, selector, systemPrompt, log, skillsHub)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

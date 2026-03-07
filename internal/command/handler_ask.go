@@ -22,6 +22,14 @@ type askHandler struct {
 	logger       Logger
 }
 
+// withSystemPrompt returns a shallow copy of the handler with a different systemPrompt.
+// The original handler is not modified.
+func (h *askHandler) withSystemPrompt(prompt string) *askHandler {
+	copy := *h
+	copy.systemPrompt = prompt
+	return &copy
+}
+
 func (h *askHandler) Handle(ctx context.Context, msg *IncomingMessage) (string, error) {
 	prompt := strings.TrimPrefix(msg.Content, "/ask")
 	prompt = strings.TrimSpace(prompt)
@@ -74,7 +82,17 @@ func (h *askHandler) Handle(ctx context.Context, msg *IncomingMessage) (string, 
 	// Run with selected model, pass progress callback for streaming
 	result, err := h.runner.RunWithModel(ctx, prompt, sessionID, systemPrompt, imagePaths, modelName, msg.ProgressFn)
 	if err != nil {
-		return fmt.Sprintf("执行出错：%v", err), nil
+		// If the session ID is stale (e.g. Claude Code restarted), retry without it
+		if sessionID != "" && strings.Contains(err.Error(), "No conversation found") {
+			h.logger.Info("stale session ID, retrying without session", "user_id", msg.UserID, "session_id", sessionID)
+			if clearErr := h.store.SaveSession(msg.UserID, ""); clearErr != nil {
+				h.logger.Error("clear session failed", "err", clearErr)
+			}
+			result, err = h.runner.RunWithModel(ctx, prompt, "", systemPrompt, imagePaths, modelName, msg.ProgressFn)
+		}
+		if err != nil {
+			return fmt.Sprintf("执行出错：%v", err), nil
+		}
 	}
 
 	if err := h.store.SaveSession(msg.UserID, result.SessionID); err != nil {

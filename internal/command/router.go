@@ -10,6 +10,7 @@ import (
 	"claude-bot/internal/imageutil"
 	"claude-bot/internal/memory"
 	"claude-bot/internal/newsearch"
+	"claude-bot/internal/skills"
 )
 
 // modelSwitchPatterns matches natural language model switching requests.
@@ -49,9 +50,10 @@ type Logger interface {
 
 // Router dispatches messages to the appropriate Handler based on command prefix.
 type Router struct {
-	handlers map[string]Handler
-	fallback Handler
-	store    memory.Store
+	handlers  map[string]Handler
+	fallback  Handler
+	store     memory.Store
+	skillsHub *skills.Hub // nil-safe: when nil, no skill augmentation
 }
 
 // Version info injected via ldflags from main package.
@@ -61,7 +63,7 @@ var (
 )
 
 // NewRouter wires up all command handlers.
-func NewRouter(store memory.Store, runner *claude.Runner, downloader *imageutil.Downloader, selector *claude.ModelSelector, systemPrompt string, logger Logger) *Router {
+func NewRouter(store memory.Store, runner *claude.Runner, downloader *imageutil.Downloader, selector *claude.ModelSelector, systemPrompt string, logger Logger, hub *skills.Hub) *Router {
 	askH := &askHandler{
 		store:        store,
 		runner:       runner,
@@ -82,9 +84,16 @@ func NewRouter(store memory.Store, runner *claude.Runner, downloader *imageutil.
 			"/version":  &versionHandler{},
 			"/news":     &newsHandler{searcher: newsSearcher, logger: logger},
 		},
-		fallback: askH,
-		store:    store,
+		fallback:  askH,
+		store:     store,
+		skillsHub: hub,
 	}
+
+	// Register /skill command only when hub is available
+	if hub != nil {
+		r.handlers["/skill"] = &skillHandler{store: hub.Store()}
+	}
+
 	return r
 }
 
@@ -100,11 +109,35 @@ func (r *Router) Route(ctx context.Context, msg *IncomingMessage) (string, error
 	}
 
 	if !strings.HasPrefix(msg.Content, "/") {
-		return r.fallback.Handle(ctx, msg)
+		// Free-text fallback: augment system prompt via skills hub (nil-safe)
+		h := r.fallback
+		if r.skillsHub != nil {
+			if askH, ok := h.(*askHandler); ok {
+				augmented := r.skillsHub.Augment(askH.systemPrompt, msg.Content)
+				h = askH.withSystemPrompt(augmented)
+			}
+		}
+		return h.Handle(ctx, msg)
 	}
 
 	parts := strings.SplitN(msg.Content, " ", 2)
 	cmd := strings.ToLower(parts[0])
+
+	// /ask command also gets skill augmentation
+	if cmd == "/ask" {
+		h := r.handlers["/ask"]
+		if r.skillsHub != nil {
+			if askH, ok := h.(*askHandler); ok {
+				content := msg.Content
+				if len(parts) > 1 {
+					content = parts[1]
+				}
+				augmented := r.skillsHub.Augment(askH.systemPrompt, content)
+				h = askH.withSystemPrompt(augmented)
+			}
+		}
+		return h.Handle(ctx, msg)
+	}
 
 	h, ok := r.handlers[cmd]
 	if !ok {
