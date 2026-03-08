@@ -1,11 +1,11 @@
 ﻿package claude
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -47,18 +47,6 @@ func New(binPath string, timeoutSeconds int) *Runner {
 	}
 }
 
-// buildCmd constructs the exec.Cmd for the given args, adapting for the current OS.
-// On Windows: cmd /c <binPath> <args...>
-// On Linux/macOS: <binPath> <args...>
-func (r *Runner) buildCmd(ctx context.Context, args []string) *exec.Cmd {
-	if runtime.GOOS == "windows" {
-		// Prepend "cmd /c <binPath>" so the binary runs inside CMD environment
-		cmdArgs := append([]string{"/c", r.binPath}, args...)
-		return exec.CommandContext(ctx, "cmd", cmdArgs...)
-	}
-	return exec.CommandContext(ctx, r.binPath, args...)
-}
-
 // Run invokes the Claude CLI with the given prompt, optional sessionID, systemPrompt, and image paths.
 // progressFn is called after 10 seconds if the subprocess is still running.
 func (r *Runner) Run(ctx context.Context, prompt, sessionID, systemPrompt string, imagePaths []string, progressFn func(string)) (*RunResult, error) {
@@ -66,8 +54,11 @@ func (r *Runner) Run(ctx context.Context, prompt, sessionID, systemPrompt string
 }
 
 // RunWithModel invokes the Claude CLI with a specific model.
+// The prompt is passed via stdin (--print flag reads from stdin) to avoid shell
+// encoding issues on Windows (cmd.exe defaults to GBK/CP936).
 func (r *Runner) RunWithModel(ctx context.Context, prompt, sessionID, systemPrompt string, imagePaths []string, modelName string, progressFn func(string)) (*RunResult, error) {
-	args := []string{"-p", prompt, "--output-format", "json"}
+	// Use --print to read prompt from stdin, avoiding shell encoding issues on Windows.
+	args := []string{"--print", "--output-format", "json"}
 
 	if modelName != "" {
 		args = append(args, "--model", modelName)
@@ -90,7 +81,9 @@ func (r *Runner) RunWithModel(ctx context.Context, prompt, sessionID, systemProm
 		defer cancel()
 	}
 
-	cmd := r.buildCmd(runCtx, args)
+	// Invoke the binary directly (not via cmd /c) so UTF-8 is preserved on all platforms.
+	cmd := exec.CommandContext(runCtx, r.binPath, args...)
+	cmd.Stdin = strings.NewReader(prompt)
 
 	// Fire progress callback after 10 seconds
 	progressTimer := time.AfterFunc(10*time.Second, func() {
@@ -100,7 +93,13 @@ func (r *Runner) RunWithModel(ctx context.Context, prompt, sessionID, systemProm
 	})
 	defer progressTimer.Stop()
 
-	out, err := cmd.Output()
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	out := stdout.Bytes()
+
 	if err != nil {
 		if runCtx.Err() == context.DeadlineExceeded {
 			return nil, fmt.Errorf("claude request timed out after %s", r.timeout)
@@ -117,18 +116,11 @@ func (r *Runner) RunWithModel(ctx context.Context, prompt, sessionID, systemProm
 				}, nil
 			}
 		}
-		// Capture stderr for non-zero exit
-		var exitErr *exec.ExitError
-		stderr := ""
-		if e, ok := err.(*exec.ExitError); ok {
-			exitErr = e
-			if len(exitErr.Stderr) > 200 {
-				stderr = string(exitErr.Stderr[:200])
-			} else {
-				stderr = string(exitErr.Stderr)
-			}
+		errMsg := strings.TrimSpace(stderr.String())
+		if len(errMsg) > 200 {
+			errMsg = errMsg[:200]
 		}
-		return nil, fmt.Errorf("claude exited with error: %s", strings.TrimSpace(stderr))
+		return nil, fmt.Errorf("claude exited with error: %s", errMsg)
 	}
 
 	var result claudeOutput
@@ -142,4 +134,3 @@ func (r *Runner) RunWithModel(ctx context.Context, prompt, sessionID, systemProm
 		Usage:     result.Usage,
 	}, nil
 }
-

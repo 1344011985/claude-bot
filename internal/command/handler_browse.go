@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"claude-bot/internal/browser"
@@ -48,6 +49,69 @@ func (h *browseHandler) Handle(ctx context.Context, msg *IncomingMessage) (strin
 		return h.handleAria(ctx, msg)
 	}
 
+	// /browse 等待 <selector>
+	if parts[0] == "等待" && len(parts) >= 2 {
+		selector := strings.Join(parts[1:], " ")
+		if err := h.manager.WaitForSelector(msg.UserID, selector); err != nil {
+			return fmt.Sprintf("等待元素 %q 失败：%v", selector, err), nil
+		}
+		return fmt.Sprintf("元素 %q 已出现", selector), nil
+	}
+
+	// /browse 滚动 下 [pixels]  /  /browse 滚动 上 [pixels]
+	if parts[0] == "滚动" && len(parts) >= 2 {
+		pixels := 500
+		if len(parts) >= 3 {
+			if n, err := strconv.Atoi(parts[2]); err == nil && n > 0 {
+				pixels = n
+			}
+		}
+		switch parts[1] {
+		case "下":
+			if err := h.manager.ScrollDown(msg.UserID, pixels); err != nil {
+				return fmt.Sprintf("向下滚动失败：%v", err), nil
+			}
+			return fmt.Sprintf("已向下滚动 %d px", pixels), nil
+		case "上":
+			if err := h.manager.ScrollUp(msg.UserID, pixels); err != nil {
+				return fmt.Sprintf("向上滚动失败：%v", err), nil
+			}
+			return fmt.Sprintf("已向上滚动 %d px", pixels), nil
+		}
+	}
+
+	// /browse 回车 e3  (press Enter then click ref, convenience alias)
+	// /browse 按键 Enter  (raw key press)
+	if (parts[0] == "回车" || parts[0] == "按键") && len(parts) >= 2 {
+		key := parts[1]
+		if parts[0] == "回车" {
+			key = "Enter"
+		}
+		if err := h.manager.PressKey(msg.UserID, key); err != nil {
+			return fmt.Sprintf("按键 %q 失败：%v", key, err), nil
+		}
+		return fmt.Sprintf("已按下 %s", key), nil
+	}
+
+	// /browse 保存登录 <name>
+	if parts[0] == "保存登录" && len(parts) >= 2 {
+		name := parts[1]
+		path, err := h.manager.SaveState(msg.UserID, name)
+		if err != nil {
+			return fmt.Sprintf("保存登录状态失败：%v", err), nil
+		}
+		return fmt.Sprintf("登录状态已保存：%s", path), nil
+	}
+
+	// /browse 恢复登录 <name>
+	if parts[0] == "恢复登录" && len(parts) >= 2 {
+		name := parts[1]
+		if err := h.manager.LoadState(msg.UserID, name); err != nil {
+			return fmt.Sprintf("恢复登录状态失败：%v", err), nil
+		}
+		return fmt.Sprintf("登录状态 %q 已恢复", name), nil
+	}
+
 	// /browse <url> [instruction]
 	url, instruction := parseArgs(args)
 	if url == "" {
@@ -78,18 +142,29 @@ func (h *browseHandler) Handle(ctx context.Context, msg *IncomingMessage) (strin
 
 func (h *browseHandler) usage() string {
 	return "/browse 用法：\n" +
-		"  /browse <url>              — 打开网页，AI 总结内容\n" +
-		"  /browse <url> 截图         — 截图并让 AI 分析\n" +
-		"  /browse <url> aria         — 提取可交互元素列表 (e1/e2...)\n" +
-		"  /browse aria               — 对当前页面提取 aria 快照\n" +
-		"  /browse 点击 e3            — 点击编号为 e3 的元素\n" +
-		"  /browse 输入 e3 文字内容   — 在 e3 元素输入文字\n" +
-		"  /browse <url> <指令>       — 打开网页后 AI 执行指令\n" +
+		"  /browse <url>                  — 打开网页，AI 总结内容\n" +
+		"  /browse <url> 截图             — 截图并让 AI 分析\n" +
+		"  /browse <url> aria             — 提取可交互元素列表 (e1/e2...)\n" +
+		"  /browse aria                   — 对当前页面提取 aria 快照\n" +
+		"  /browse 点击 e3                — 点击编号为 e3 的元素\n" +
+		"  /browse 输入 e3 文字内容       — 在 e3 元素输入文字\n" +
+		"  /browse 等待 <selector>        — 等待 CSS selector 出现 (最多15s)\n" +
+		"  /browse 滚动 下 [像素]         — 向下滚动（默认500px）\n" +
+		"  /browse 滚动 上 [像素]         — 向上滚动\n" +
+		"  /browse 回车 e3                — 按下 Enter 键\n" +
+		"  /browse 按键 Enter             — 按下指定键（Enter/Tab/Escape等）\n" +
+		"  /browse 保存登录 <name>        — 保存当前 cookies 到文件\n" +
+		"  /browse 恢复登录 <name>        — 从文件恢复 cookies\n" +
+		"  /browse <url> <指令>           — 打开网页后 AI 执行指令\n" +
 		"示例：\n" +
 		"  /browse https://github.com/trending\n" +
 		"  /browse https://example.com aria\n" +
 		"  /browse 点击 e5\n" +
-		"  /browse 输入 e2 hello world"
+		"  /browse 输入 e2 hello world\n" +
+		"  /browse 滚动 下 1000\n" +
+		"  /browse 按键 Enter\n" +
+		"  /browse 保存登录 github\n" +
+		"  /browse 恢复登录 github"
 }
 
 // handleAria takes an aria snapshot and returns the formatted element list.
