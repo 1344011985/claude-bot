@@ -13,6 +13,7 @@ func (h *helpHandler) Handle(ctx context.Context, msg *IncomingMessage) (string,
 /forget          — 清除所有长期记忆
 /history [n]     — 查看最近 n 条对话（默认 5）
 /news [关键词]   — 搜索最新新闻（不带关键词则显示热点）
+/browse <url> [指令] — 打开网页，AI 分析（加截图关键词可截图）
 /skill list      — 查看所有 skill
 /skill add <名称> | <prompt> [| 触发词1,触发词2]
 /skill show/enable/disable/delete <id>

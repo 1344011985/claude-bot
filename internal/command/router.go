@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"claude-bot/internal/browser"
 	"claude-bot/internal/claude"
 	"claude-bot/internal/imageutil"
 	"claude-bot/internal/memory"
@@ -63,7 +64,7 @@ var (
 )
 
 // NewRouter wires up all command handlers.
-func NewRouter(store memory.Store, runner *claude.Runner, downloader *imageutil.Downloader, selector *claude.ModelSelector, systemPrompt string, logger Logger, hub *skills.Hub) *Router {
+func NewRouter(store memory.Store, runner *claude.Runner, downloader *imageutil.Downloader, selector *claude.ModelSelector, systemPrompt string, logger Logger, hub *skills.Hub, browserMgr *browser.Manager) *Router {
 	askH := &askHandler{
 		store:        store,
 		runner:       runner,
@@ -92,6 +93,17 @@ func NewRouter(store memory.Store, runner *claude.Runner, downloader *imageutil.
 	// Register /skill command only when hub is available
 	if hub != nil {
 		r.handlers["/skill"] = &skillHandler{store: hub.Store()}
+	}
+
+	// Register /browse command only when browser manager is available
+	if browserMgr != nil {
+		r.handlers["/browse"] = &browseHandler{
+			manager:  browserMgr,
+			runner:   runner,
+			selector: selector,
+			store:    store,
+			logger:   logger,
+		}
 	}
 
 	return r

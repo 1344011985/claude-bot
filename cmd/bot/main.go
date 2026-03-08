@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 
+	"claude-bot/internal/browser"
 	"claude-bot/internal/claude"
 	"claude-bot/internal/command"
 	"claude-bot/internal/config"
@@ -112,8 +113,19 @@ func main() {
 		log.Info("skills hub enabled")
 	}
 
+	// Browser Manager (optional — failure is non-fatal, /browse stays disabled)
+	var browserMgr *browser.Manager
+	browserCacheDir := cfg.ConfigDir + "/data/browser_cache"
+	if bm, err := browser.NewManager(browserCacheDir); err != nil {
+		log.Warn("failed to init browser manager, /browse disabled", "err", err)
+	} else {
+		browserMgr = bm
+		log.Info("browser manager enabled", "cache_dir", browserCacheDir)
+		defer browserMgr.Close()
+	}
+
 	systemPrompt := buildSystemPrompt(cfg)
-	router := command.NewRouter(store, runner, downloader, selector, systemPrompt, log, skillsHub)
+	router := command.NewRouter(store, runner, downloader, selector, systemPrompt, log, skillsHub, browserMgr)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
