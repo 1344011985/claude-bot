@@ -53,6 +53,9 @@ type nameCacheEntry struct {
 }
 
 const (
+	// botOpenID is the Feishu open_id of this bot, used to detect @mentions in group chats.
+	botOpenID = "ou_ceefb0e03942a04947a292fa51846d42"
+
 	maxGroupHistorySize = 5
 	nameCacheTTL        = 10 * time.Minute
 )
@@ -210,10 +213,13 @@ func (b *Bot) onMessage(ctx context.Context, event *larkim.P2MessageReceiveV1) e
 		// Record to history first
 		b.recordHistory(chatID, userID, senderName, content)
 
-		// Check if bot is mentioned
+		// Check if bot itself is @mentioned (not just any mention)
 		botMentioned := false
-		if len(msg.Mentions) > 0 {
-			botMentioned = true // any mention in a group = bot is targeted (simplified)
+		for _, mention := range msg.Mentions {
+			if mention.Id != nil && mention.Id.OpenId != nil && *mention.Id.OpenId == botOpenID {
+				botMentioned = true
+				break
+			}
 		}
 		if botMentioned || strings.HasPrefix(content, "/") {
 			shouldRespond = true
