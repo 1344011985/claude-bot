@@ -375,11 +375,11 @@ class MultiSearchEngine:
 
         elif search_type == 'news':
             # 优先使用新闻引擎
-            engine_order = ['bing', 'baidu', 'duckduckgo']
+            engine_order = ['baidu', 'bing']
 
         else:  # web
             # 通用网页搜索
-            engine_order = ['baidu', 'duckduckgo', 'bing']
+            engine_order = ['baidu', 'bing']
 
         # 尝试每个引擎
         for engine_name in engine_order:

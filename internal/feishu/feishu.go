@@ -262,13 +262,11 @@ func (b *Bot) onMessage(ctx context.Context, event *larkim.P2MessageReceiveV1) e
 		}
 	}
 
-	reply := b.dispatch(ctx, userID, chatID, enrichedContent, progressFn)
+	reply := b.dispatchAsyncOrSync(ctx, userID, chatID, enrichedContent, progressFn)
 
 	if stream != nil {
-		// Close streaming card with final content
 		stream.close(reply)
 	} else if thinkingMsgID != "" {
-		// Patch-based fallback
 		if err := b.patchCard(ctx, thinkingMsgID, reply); err != nil {
 			b.logger.Error("patch card failed, sending new reply", "err", err)
 			b.sendReply(ctx, msgID, reply)

@@ -2,7 +2,9 @@
 
 [中文文档](README.zh.md)
 
-Go-based bot powered by [Claude Code](https://claude.ai/code) as the AI backend. Currently supports Feishu (Lark).
+Go-based bot powered by [Claude Code](https://claude.ai/code) as the AI backend. Currently supports Feishu (Lark), local HTTP Bridge, and built-in Skills Hub prompt injection.
+
+> Note: historical QQ bot design docs may still exist under `.kiro/specs/`, but they no longer describe the current architecture.
 
 ## Requirements
 
@@ -85,7 +87,7 @@ Create the directory and config file manually before running.
 | `channel` | `feishu` | Which platform to start |
 | `claude.bin_path` | `claude` | Path to Claude Code CLI binary |
 | `claude.timeout_seconds` | `0` | Per-request timeout, 0 = unlimited |
-| `claude.default_model` | `haiku` | Default model: haiku / sonnet / opus |
+| `claude.default_model` | `haiku` | Default model: haiku / sonnet / opus / vip-gpt5.4 |
 | `claude.auto_select` | `true` | Auto-select model based on message complexity |
 | `memory.db_path` | `~/.claude-bot/data/bot.db` | SQLite database path |
 | `images.cache_dir` | (disabled) | Local directory for downloaded images |
@@ -129,6 +131,32 @@ Once the bot is running, users can send the following commands in Feishu:
 | `/ask <question>` | Ask Claude (continues existing session) |
 | `/new` | Start a new session, clear current context |
 | `/remember <content>` | Save a long-term memory injected into every session |
+| `/forget` | Clear all long-term memories |
+| `/history [n]` | Show last n conversations (default 5) |
+| `/news [keyword]` | Search latest news, or show hot topics if no keyword |
+| `/help` | Show available commands |
+| `/version` | Show build version and commit |
+
+Direct messages (without a `/` prefix) are treated as `/ask`.
+
+Model switching is also supported via natural language, e.g. "切换模型为 sonnet" or "使用 opus".
+
+## Feishu app setup
+
+1. Create a custom app at [open.feishu.cn](https://open.feishu.cn)
+2. Enable the following permissions:
+   - `im:message` — read and send messages
+   - `im:message.reaction:write` — add/remove reactions
+   - `contact:user.base:readonly` — resolve sender display names
+3. Add the bot to your workspace and enable WebSocket event subscription
+4. Copy `App ID` and `App Secret` into `claude-bot.json`
+
+## Tests
+
+```bash
+go test ./...
+```
+session |
 | `/forget` | Clear all long-term memories |
 | `/history [n]` | Show last n conversations (default 5) |
 | `/news [keyword]` | Search latest news, or show hot topics if no keyword |

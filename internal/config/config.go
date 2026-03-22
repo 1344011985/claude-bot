@@ -165,6 +165,13 @@ func defaultConfig() *Config {
 			CacheWriteMTok:  37.5,
 			CacheReadMTok:   3.0,
 		},
+		"vip-gpt5.4": {
+			Name:            "vip-openai/gpt-5.4",
+			InputPriceMTok:  0,
+			OutputPriceMTok: 0,
+			CacheWriteMTok:  0,
+			CacheReadMTok:   0,
+		},
 	}
 	cfg.LogLevel = "info"
 	cfg.Images.MaxSizeMB = 10

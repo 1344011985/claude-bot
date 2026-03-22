@@ -7,20 +7,21 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
+	"time"
 
 	"claude-bot/internal/browser"
 	"claude-bot/internal/claude"
 	"claude-bot/internal/command"
 	"claude-bot/internal/config"
 	"claude-bot/internal/feishu"
+	"claude-bot/internal/httpbridge"
 	"claude-bot/internal/imageutil"
 	"claude-bot/internal/memory"
 	"claude-bot/internal/skills"
+	"claude-bot/internal/taskqueue"
 	"claude-bot/pkg/logger"
 )
 
-// Version variables injected via ldflags at build time.
 var (
 	GitCommit = "unknown"
 	BuildDate = "unknown"
@@ -31,11 +32,9 @@ func main() {
 	configFlag := flag.String("config", "", "override config file path")
 	flag.Parse()
 
-	// Inject version into command package
 	command.GitCommit = GitCommit
 	command.BuildDate = BuildDate
 
-	// Resolve config path
 	cfgPath := *configFlag
 	if cfgPath == "" {
 		var err error
@@ -46,11 +45,7 @@ func main() {
 		}
 	}
 
-	// Log platform and config path before logger is fully initialised
-	slog.Info("starting claude-bot",
-		"platform", config.Platform(),
-		"config_path", cfgPath,
-	)
+	slog.Info("starting claude-bot", "platform", config.Platform(), "config_path", cfgPath)
 
 	cfg, err := config.LoadFrom(cfgPath)
 	if err != nil {
@@ -66,21 +61,13 @@ func main() {
 	}
 
 	log := logger.New(cfg.LogLevel, cfg.ConfigDir)
+	log.Info("config loaded", "platform", config.Platform(), "config_path", cfgPath, "config_dir", cfg.ConfigDir, "channel", cfg.Channel)
 
-	log.Info("config loaded",
-		"platform", config.Platform(),
-		"config_path", cfgPath,
-		"config_dir", cfg.ConfigDir,
-		"channel", cfg.Channel,
-	)
-
-	// Ensure data directory exists
 	if err := os.MkdirAll(cfg.ConfigDir+"/data", 0755); err != nil {
 		log.Error("failed to create data directory", "err", err)
 		os.Exit(1)
 	}
 
-	// Initialise memory store
 	store, err := memory.NewSQLiteStore(cfg.Memory.DBPath)
 	if err != nil {
 		log.Error("failed to open memory store", "err", err)
@@ -104,7 +91,6 @@ func main() {
 		log.Info("image support enabled", "cache_dir", cfg.Images.CacheDir)
 	}
 
-	// Skills Hub (optional — failure is non-fatal, hub stays nil)
 	var skillsHub *skills.Hub
 	if skillStore, err := skills.NewSQLiteSkillStore(store.DB()); err != nil {
 		log.Warn("failed to init skills store, skills disabled", "err", err)
@@ -113,7 +99,6 @@ func main() {
 		log.Info("skills hub enabled")
 	}
 
-	// Browser Manager (optional — failure is non-fatal, /browse stays disabled)
 	var browserMgr *browser.Manager
 	browserCacheDir := cfg.ConfigDir + "/data/browser_cache"
 	if bm, err := browser.NewManager(browserCacheDir); err != nil {
@@ -125,10 +110,29 @@ func main() {
 	}
 
 	systemPrompt := buildSystemPrompt(cfg)
-	router := command.NewRouter(store, runner, downloader, selector, systemPrompt, log, skillsHub, browserMgr)
+	queue, err := taskqueue.New(store.DB(), store, runner, downloader, selector, systemPrompt, log, 2)
+	if err != nil {
+		log.Error("failed to init task queue", "err", err)
+		os.Exit(1)
+	}
+	router := command.NewRouter(store, runner, downloader, selector, systemPrompt, log, skillsHub, browserMgr, queue)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	bridge := httpbridge.New("127.0.0.1:9191", queue, log)
+	go func() {
+		if err := bridge.Start(); err != nil {
+			log.Error("http bridge exited with error", "err", err)
+		}
+	}()
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := bridge.Shutdown(shutdownCtx); err != nil {
+			log.Warn("http bridge shutdown failed", "err", err)
+		}
+	}()
 
 	log.Info("bot starting", "channel", cfg.Channel, "commit", GitCommit, "built", BuildDate)
 
@@ -144,7 +148,6 @@ func main() {
 	}
 }
 
-// buildSystemPrompt returns the system prompt to inject into every Claude call.
 func buildSystemPrompt(cfg *config.Config) string {
 	if cfg.SystemPrompt != "" {
 		return cfg.SystemPrompt
@@ -165,13 +168,16 @@ func buildSystemPrompt(cfg *config.Config) string {
 - 如果用户要求执行危险操作，礼貌拒绝并说明原因
 
 ## 可用命令
-- /ask <问题> — 向 Claude 提问（续接上下文）
-- /new — 开启新对话，清除当前 session
-- /remember <内容> — 保存长期记忆
-- /forget — 清除所有长期记忆
-- /history [n] — 查看最近 n 条对话
-- /news [关键词] — 搜索最新新闻
-- /help — 显示帮助
-- /version — 显示版本信息
+- /ask <问题> —— 向 Claude 提问（续接上下文）
+- /new —— 开启新对话，清除当前 session
+- /remember <内容> —— 保存长期记忆
+- /forget —— 清除所有长期记忆
+- /history [n] —— 查看最近 n 条对话
+- /tasks —— 查看最近任务
+- /status <task_id> —— 查看任务状态
+- /cancel <task_id> —— 取消任务
+- /news [关键词] —— 搜索最新新闻
+- /help —— 显示帮助
+- /version —— 显示版本信息
 - 直接发消息等同于 /ask`
 }

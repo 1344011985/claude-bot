@@ -35,9 +35,12 @@ Run: `./dist/claude-bot -channel feishu`
 
 ### Architecture
 - **Feishu channel**: `internal/feishu/` — uses larksuite/oapi-sdk-go, WebSocket
+- **HTTP Bridge**: `internal/httpbridge/server.go` — local bridge on `127.0.0.1:9191`
 - **Claude runner**: `internal/claude/runner.go` — spawns claude CLI subprocess, captures JSON output
 - **Command router**: `internal/command/router.go` — dispatches /commands and free-text to handlers
+- **Skills Hub**: `internal/skills/` — keyword-triggered prompt injection middleware
 - **Memory store**: `internal/memory/store.go` — SQLite-backed sessions, memories, history, dedup
+- **Task queue (new direction)**: `internal/taskqueue/` — async task submission/query/cancel lifecycle
 
 ### Current State (as of 2026-02-28)
 - Feishu: streaming card (CardKit), group history context, quoted message context, sender name resolution

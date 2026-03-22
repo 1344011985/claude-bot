@@ -1,4 +1,4 @@
-﻿package command
+package command
 
 import (
 	"context"
@@ -12,16 +12,15 @@ import (
 	"claude-bot/internal/memory"
 	"claude-bot/internal/newsearch"
 	"claude-bot/internal/skills"
+	"claude-bot/internal/taskqueue"
 )
 
-// modelSwitchPatterns matches natural language model switching requests.
 var modelSwitchPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)(?:切换|换|改|设置|设定)(?:模型|model)?(?:为|到|成)\s*(haiku|sonnet|opus|auto)`),
 	regexp.MustCompile(`(?i)(?:使用|用)\s*(haiku|sonnet|opus|auto)\s*(?:模型|model)?`),
 	regexp.MustCompile(`(?i)(?:模型|model)\s*(?:切换|换|改|设置|设定)(?:为|到|成)?\s*(haiku|sonnet|opus|auto)`),
 }
 
-// modelDisplayNames maps model keys to friendly display names.
 var modelDisplayNames = map[string]string{
 	"haiku":  "Haiku (快速轻量)",
 	"sonnet": "Sonnet (均衡)",
@@ -29,42 +28,37 @@ var modelDisplayNames = map[string]string{
 	"auto":   "自动选择",
 }
 
-// IncomingMessage holds the parsed incoming message from any channel.
 type IncomingMessage struct {
 	UserID     string
-	GroupID    string       // empty for direct messages
+	GroupID    string
 	Content    string
-	ImageURLs  []string     // attachment image URLs, may be empty
-	ProgressFn func(string) // optional: called with partial AI output (for streaming)
+	ImageURLs  []string
+	ProgressFn func(string)
 }
 
-// Handler processes an incoming message and returns a reply string.
 type Handler interface {
 	Handle(ctx context.Context, msg *IncomingMessage) (string, error)
 }
 
-// Logger is the minimal logging interface used by command handlers.
 type Logger interface {
 	Error(msg string, args ...any)
 	Info(msg string, args ...any)
 }
 
-// Router dispatches messages to the appropriate Handler based on command prefix.
 type Router struct {
 	handlers  map[string]Handler
 	fallback  Handler
 	store     memory.Store
-	skillsHub *skills.Hub // nil-safe: when nil, no skill augmentation
+	tasks     taskqueue.Queue
+	skillsHub *skills.Hub
 }
 
-// Version info injected via ldflags from main package.
 var (
 	GitCommit = "unknown"
 	BuildDate = "unknown"
 )
 
-// NewRouter wires up all command handlers.
-func NewRouter(store memory.Store, runner *claude.Runner, downloader *imageutil.Downloader, selector *claude.ModelSelector, systemPrompt string, logger Logger, hub *skills.Hub, browserMgr *browser.Manager) *Router {
+func NewRouter(store memory.Store, runner *claude.Runner, downloader *imageutil.Downloader, selector *claude.ModelSelector, systemPrompt string, logger Logger, hub *skills.Hub, browserMgr *browser.Manager, queue taskqueue.Queue) *Router {
 	askH := &askHandler{
 		store:        store,
 		runner:       runner,
@@ -87,15 +81,18 @@ func NewRouter(store memory.Store, runner *claude.Runner, downloader *imageutil.
 		},
 		fallback:  askH,
 		store:     store,
+		tasks:     queue,
 		skillsHub: hub,
 	}
 
-	// Register /skill command only when hub is available
+	if queue != nil {
+		r.handlers["/tasks"] = &tasksHandler{queue: queue}
+		r.handlers["/status"] = &statusHandler{queue: queue}
+		r.handlers["/cancel"] = &cancelHandler{queue: queue}
+	}
 	if hub != nil {
 		r.handlers["/skill"] = &skillHandler{store: hub.Store()}
 	}
-
-	// Register /browse command only when browser manager is available
 	if browserMgr != nil {
 		r.handlers["/browse"] = &browseHandler{
 			manager:  browserMgr,
@@ -105,23 +102,18 @@ func NewRouter(store memory.Store, runner *claude.Runner, downloader *imageutil.
 			logger:   logger,
 		}
 	}
-
 	return r
 }
 
-// Route dispatches the message to the correct handler.
 func (r *Router) Route(ctx context.Context, msg *IncomingMessage) (string, error) {
-	// Pre-processing: check for model switch intent
 	if model, ok := r.detectModelSwitch(msg.Content); ok {
 		if err := r.store.SetModelPreference(msg.UserID, model); err != nil {
 			return "模型切换失败，请稍后重试。", nil
 		}
-		displayName := modelDisplayNames[model]
-		return fmt.Sprintf("已切换模型为 %s", displayName), nil
+		return fmt.Sprintf("已切换模型为 %s", modelDisplayNames[model]), nil
 	}
 
 	if !strings.HasPrefix(msg.Content, "/") {
-		// Free-text fallback: augment system prompt via skills hub (nil-safe)
 		h := r.fallback
 		if r.skillsHub != nil {
 			if askH, ok := h.(*askHandler); ok {
@@ -134,8 +126,6 @@ func (r *Router) Route(ctx context.Context, msg *IncomingMessage) (string, error
 
 	parts := strings.SplitN(msg.Content, " ", 2)
 	cmd := strings.ToLower(parts[0])
-
-	// /ask command also gets skill augmentation
 	if cmd == "/ask" {
 		h := r.handlers["/ask"]
 		if r.skillsHub != nil {
@@ -158,7 +148,10 @@ func (r *Router) Route(ctx context.Context, msg *IncomingMessage) (string, error
 	return h.Handle(ctx, msg)
 }
 
-// detectModelSwitch checks if the message is a model switching request.
+func (r *Router) Tasks() taskqueue.Queue {
+	return r.tasks
+}
+
 func (r *Router) detectModelSwitch(content string) (string, bool) {
 	trimmed := strings.TrimSpace(content)
 	for _, pat := range modelSwitchPatterns {
