@@ -30,3 +30,6 @@ Thumbs.db
 tmp/
 *.log
 *.txt
+*.bak
+tmp_*.go
+bot.exe
