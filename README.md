@@ -134,32 +134,11 @@ Once the bot is running, users can send the following commands in Feishu:
 | `/forget` | Clear all long-term memories |
 | `/history [n]` | Show last n conversations (default 5) |
 | `/news [keyword]` | Search latest news, or show hot topics if no keyword |
-| `/help` | Show available commands |
-| `/version` | Show build version and commit |
-
-Direct messages (without a `/` prefix) are treated as `/ask`.
-
-Model switching is also supported via natural language, e.g. "切换模型为 sonnet" or "使用 opus".
-
-## Feishu app setup
-
-1. Create a custom app at [open.feishu.cn](https://open.feishu.cn)
-2. Enable the following permissions:
-   - `im:message` — read and send messages
-   - `im:message.reaction:write` — add/remove reactions
-   - `contact:user.base:readonly` — resolve sender display names
-3. Add the bot to your workspace and enable WebSocket event subscription
-4. Copy `App ID` and `App Secret` into `claude-bot.json`
-
-## Tests
-
-```bash
-go test ./...
-```
-session |
-| `/forget` | Clear all long-term memories |
-| `/history [n]` | Show last n conversations (default 5) |
-| `/news [keyword]` | Search latest news, or show hot topics if no keyword |
+| `/skill <name> [args]` | Trigger a registered skill (keyword-matched prompt injection) |
+| `/tasks` | List recent async tasks |
+| `/status <task_id>` | Check status of an async task |
+| `/cancel <task_id>` | Cancel a running async task |
+| `/browse <url> [question]` | Fetch a webpage and ask Claude about its content |
 | `/help` | Show available commands |
 | `/version` | Show build version and commit |
 
